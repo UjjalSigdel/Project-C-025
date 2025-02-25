@@ -1,97 +1,145 @@
 #include <stdio.h>
+#include <string.h>
+#include <stdbool.h>
 #include <stdlib.h>
 
-#define ROW 5
-#define COL 5
+#define MAX 100 // Maximum maze size
 
-// Directions: Up, Right, Down, Left
-int dx[] = {-1, 0, 1, 0};
-int dy[] = {0, 1, 0, -1};
+// Global direction arrays
+int dx[4], dy[4];
 
-// Node structure to store position and distance
-typedef struct {
-    int x, y, dist;
-} Node;
+char maze[MAX][MAX];
+bool visited[MAX][MAX];
+int rows, cols;
+int startX, startY, endX, endY;
+bool found = false;
 
-// Queue structure for BFS
-typedef struct {
-    Node queue[ROW * COL];
-    int front, rear;
-} Queue;
-
-// Enqueue operation
-void enqueue(Queue *q, int x, int y, int dist) {
-    q->queue[q->rear++] = (Node){x, y, dist};
-}
-
-// Dequeue operation
-Node dequeue(Queue *q) {
-    return q->queue[q->front++];
-}
-
-// Check if queue is empty
-int isEmpty(Queue *q) {
-    return q->front == q->rear;
-}
-
-// BFS Algorithm
-int BFS(char maze[ROW][COL], int startX, int startY, int endX, int endY) {
-    int visited[ROW][COL] = {0};
-    Queue q = {.front = 0, .rear = 0};
-
-    enqueue(&q, startX, startY, 0);
-    visited[startX][startY] = 1;
-
-    while (!isEmpty(&q)) {
-        Node current = dequeue(&q);
-
-        // Check if we've reached the end
-        if (current.x == endX && current.y == endY) {
-            return current.dist;  // Shortest path length
-        }
-
-        // Explore all 4 directions
-        for (int i = 0; i < 4; i++) {
-            int newX = current.x + dx[i];
-            int newY = current.y + dy[i];
-
-            // Check maze boundaries and valid paths
-            if (newX >= 0 && newX < ROW && newY >= 0 && newY < COL &&
-                (maze[newX][newY] == '0' || maze[newX][newY] == 'E') && !visited[newX][newY]) {
-
-                enqueue(&q, newX, newY, current.dist + 1);
-                visited[newX][newY] = 1;
-            }
-        }
-    }
-    return -1;  // No path found
-}
-
-int main() {
-    char maze[ROW][COL] = {
-       //input
-    };
-
-    int startX, startY, endX, endY;
-
-    // Locate Start (S) and End (E) positions
-    for (int i = 0; i < ROW; i++) {
-        for (int j = 0; j < COL; j++) {
-            if (maze[i][j] == 'S') {
+// Function to find start and end points
+void findStartEnd()
+{
+    for (int i = 0; i < rows; i++)
+    {
+        for (int j = 0; j < cols; j++)
+        {
+            if (maze[i][j] == 'S')
+            {
                 startX = i;
                 startY = j;
-            } else if (maze[i][j] == 'E') {
+            }
+            else if (maze[i][j] == 'E')
+            {
                 endX = i;
                 endY = j;
             }
         }
     }
+}
+void setDirectionOrder()
+{
+    char order[5]; // 4 characters + null terminator
+    printf("Enter order of directions (e.g., LRUD for Left, Right, Up, Down): ");
+    scanf("%4s", order); // Read up to 4 characters
 
-    int result = BFS(maze, startX, startY, endX, endY);
-    if (result != -1)
-        printf("Shortest path length is: %d\n", result);
+    if (strlen(order) != 4)
+    {
+        printf("Please enter exactly 4 characters (L, R, U, D).\n");
+        exit(1);
+    }
+
+    for (int i = 0; i < 4; i++)
+    {
+        char d = order[i];
+        if (d == 'L' || d == 'l')
+        {
+            dx[i] = 0;  // Row change: none
+            dy[i] = -1; // Column change: left
+        }
+        else if (d == 'R' || d == 'r')
+        {
+            dx[i] = 0;
+            dy[i] = 1;
+        }
+        else if (d == 'U' || d == 'u')
+        {
+            dx[i] = -1; // Row change: up
+            dy[i] = 0;
+        }
+        else if (d == 'D' || d == 'd')
+        {
+            dx[i] = 1; // Row change: down
+            dy[i] = 0;
+        }
+        else
+        {
+            printf("Invalid direction character: %c\n", d);
+            exit(1);
+        }
+    }
+}
+
+// DFS Function (Recursive)
+bool dfs(int x, int y)
+{
+    // If out of bounds or at a wall or already visited, return false
+    if (x < 0 || y < 0 || x >= rows || y >= cols || maze[x][y] == '1' || visited[x][y])
+        return false;
+
+    // Mark as visited
+    visited[x][y] = true;
+
+    // If we reached the end, return true
+    if (x == endX && y == endY)
+    {
+        return true;
+    }
+
+    // Recursively explore all four directions
+    for (int i = 0; i < 4; i++)
+    {
+        int newX = x + dx[i];
+        int newY = y + dy[i];
+
+        if (dfs(newX, newY))
+        {
+            maze[x][y] = '*'; // Mark the correct path
+            return true;
+        }
+    }
+
+    return false; // If no path found
+}
+
+// Function to solve the maze using DFS
+void solveWithDFS()
+{
+    setDirectionOrder();
+    // Initialize visited array
+    for (int i = 0; i < rows; i++)
+        for (int j = 0; j < cols; j++)
+            visited[i][j] = false;
+
+    found = dfs(startX, startY);
+
+    if (found)
+    {
+        printf("\nSolved Maze using DFS:\n");
+        maze[startX][startY] = 'S'; // Restore start position
+        maze[endX][endY] = 'E';     // Restore end position
+        // output function
+    }
     else
-        printf("No path exists.\n");
+    {
+        printf("\nNo solution exists.\n");
+    }
+}
+
+int main()
+{
+    // input function
+    findStartEnd();
+
+    printf("\nSolving maze using DFS...\n");
+    solveWithDFS();
 
     return 0;
 }
