@@ -1,11 +1,11 @@
 #include <stdio.h>
-#include <string.h>
 #include <stdbool.h>
+#include <string.h>
 #include <stdlib.h>
 
 #define MAX 100 // Maximum maze size
 
-// Global direction arrays
+// Global direction arrays (DFS)
 int dx[4], dy[4];
 
 char maze[MAX][MAX];
@@ -13,6 +13,32 @@ bool visited[MAX][MAX];
 int rows, cols;
 int startX, startY, endX, endY;
 bool found = false;
+
+// Function to read the maze from user input
+void readMaze()
+{
+    printf("Enter the number of rows and columns: ");
+    scanf("%d %d", &rows, &cols);
+
+    printf("Enter the maze (%d x %d) using 0 for path, 1 for wall, S for start, E for end:\n", rows, cols);
+    for (int i = 0; i < rows; i++)
+    {
+        scanf("%s", maze[i]);
+    }
+}
+
+// Function to display the maze
+void printMaze()
+{
+    for (int i = 0; i < rows; i++)
+    {
+        for (int j = 0; j < cols; j++)
+        {
+            printf("%c ", maze[i][j]);
+        }
+        printf("\n");
+    }
+}
 
 // Function to find start and end points
 void findStartEnd()
@@ -34,6 +60,8 @@ void findStartEnd()
         }
     }
 }
+
+// To determine the order of search for DFS
 void setDirectionOrder()
 {
     char order[5]; // 4 characters + null terminator
@@ -78,54 +106,63 @@ void setDirectionOrder()
 }
 
 // DFS Function (Recursive)
-bool dfs(int x, int y)
+bool dfs(int x, int y, int prevDir)
 {
-    // If out of bounds or at a wall or already visited, return false
     if (x < 0 || y < 0 || x >= rows || y >= cols || maze[x][y] == '1' || visited[x][y])
         return false;
 
-    // Mark as visited
     visited[x][y] = true;
 
-    // If we reached the end, return true
     if (x == endX && y == endY)
-    {
         return true;
-    }
 
-    // Recursively explore all four directions
+    // Continue in the same direction first (if valid)
+    if (prevDir != -1)
+    {
+        int newX = x + dx[prevDir];
+        int newY = y + dy[prevDir];
+
+        if (dfs(newX, newY, prevDir))
+        {
+            maze[x][y] = '*'; // Mark path
+            return true;
+        }
+    }
+    // If the straight path is blocked, explore other directions
     for (int i = 0; i < 4; i++)
     {
+        if (i == prevDir)
+            continue; // Skip if already tried moving straight
         int newX = x + dx[i];
         int newY = y + dy[i];
 
-        if (dfs(newX, newY))
+        if (dfs(newX, newY, i))
         {
-            maze[x][y] = '*'; // Mark the correct path
+            maze[x][y] = '*'; // Mark path
             return true;
         }
     }
 
-    return false; // If no path found
+    return false;
 }
 
 // Function to solve the maze using DFS
 void solveWithDFS()
 {
-    setDirectionOrder();
+    setDirectionOrder(); // Set the order of directions for DFS
     // Initialize visited array
     for (int i = 0; i < rows; i++)
         for (int j = 0; j < cols; j++)
             visited[i][j] = false;
 
-    found = dfs(startX, startY);
+    found = dfs(startX, startY, -1);
 
     if (found)
     {
         printf("\nSolved Maze using DFS:\n");
         maze[startX][startY] = 'S'; // Restore start position
         maze[endX][endY] = 'E';     // Restore end position
-        // output function
+        printMaze();
     }
     else
     {
@@ -135,7 +172,7 @@ void solveWithDFS()
 
 int main()
 {
-    // input function
+    readMaze();
     findStartEnd();
 
     printf("\nSolving maze using DFS...\n");
